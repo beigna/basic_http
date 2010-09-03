@@ -69,7 +69,8 @@ class BasicHttp(object):
     def _request(self, method='GET', data=None, headers={}, wanted_status=None):
 
         if 'User-Agent' not in headers.keys():
-            headers['User-Agent'] = 'BasicHttp Lib 0.2 - http://github.com/nachopro/basic_http'
+            headers['User-Agent'] = 'BasicHttp Lib 0.21 - ' \
+                'http://github.com/nachopro/basic_http'
 
         headers = ['%s: %s' % (k, v) for k, v in headers.iteritems()]
         self._curl.setopt(pycurl.HTTPHEADER, headers)
@@ -99,10 +100,26 @@ class BasicHttp(object):
 
         data = {
             'status': self._status,
-            'headers': self._header.getvalue(),
+            'headers': self._headers_to_dict(),
             'body': self._body.getvalue()
         }
         return data
+
+    def _headers_to_dict(self):
+        headers = self._header.getvalue()
+        headers_dict = {}
+
+        for h in headers.split('\r\n'):
+            if h:
+                try:
+                    k, v = h.split(':')
+                except ValueError:
+                    k = h
+                    v = ''
+
+                headers_dict[k] = v.strip()
+
+        return headers_dict
 
     def GET(self, data=None, headers={}, wanted_status=None):
         return self._request('GET', data, headers, wanted_status)
