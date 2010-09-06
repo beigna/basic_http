@@ -1,125 +1,74 @@
-# -*- coding: utf-8 -*-
 
-import pycurl
-import cStringIO
+import httplib
 from urlparse import urlparse
 from urllib import urlencode
 
 class BasicHttpError(Exception): pass
 class UnsupportedScheme(BasicHttpError): pass
-class InvalidResponse(BasicHttpError): pass
+class UnexpectedResponse(BasicHttpError): pass
 
 class BasicHttp(object):
-    __slots__ = ('_url', '_url_parsed', '_status', '_header', '_body', '_curl')
+    __slots__ = (
+        '_url',
+        '_status',
+        '_header',
+        '_body',
+        '_conn',
+        '_res',
+    )
 
     def __init__(self, url, *args, **kwargs):
-        """
-        Test Init
+        self._url = urlparse(url)
+        if self._url.scheme != 'http':
+            raise UnsupportedScheme('%s is not supported.' % (self._url.scheme))
 
-        >>> a = BasicHttp('ftp://www.google.com/')
-        Traceback (most recent call last):
-        ...
-        UnsupportedScheme: Unsupported scheme: ftp
+        self._status = None
+        self._header = None
+        self._body = None
 
-        >>> a = BasicHttp('http://www.google.com/')
-        """
-
-        self._url = url
-        self._url_parsed = urlparse(url)
-
-        if self._url_parsed.scheme != 'http':
-            raise UnsupportedScheme('Unsupported scheme: %s' % (
-                self._url_parsed.scheme))
-
-        self._status = 0
-        self._header = cStringIO.StringIO()
-        self._body = cStringIO.StringIO()
-
-        self._curl = pycurl.Curl()
-        self._curl.setopt(pycurl.URL, self._url)
-
-        self._curl.setopt(pycurl.WRITEFUNCTION, self._body.write)
-        self._curl.setopt(pycurl.HEADERFUNCTION, self._header.write)
-
-        self._curl.setopt(pycurl.FOLLOWLOCATION, 1)
-        self._curl.setopt(pycurl.MAXREDIRS, 5)
 
     def authenticate(self, username, password):
-        """
-        Test authenticate
+        pass
 
-        >>> a = BasicHttp('http://handle.library.cornell.edu/' \
-            'control/authBasic/authTest/')
-        >>> a.authenticate('test', 'this')
-        >>> response = a.request()
-        >>> response['status'] == 200
-        True
+    def _path(self):
+        path = self._url.geturl()
+        path = path.replace(self._url.scheme, '')
+        path = path.replace(self._url.netloc, '')
+        return path[3:]
 
-        >>> a = BasicHttp('http://handle.library.cornell.edu/' \
-            'control/authBasic/authTest/')
-        >>> a.authenticate('', '')
-        >>> response = a.request()
-        >>> response['status'] == 401
-        True
-        """
+    def _headers_to_dict(self):
+        headers_dict = {}
+        for k, v in self._res.getheaders():
+            headers_dict[k.title()] = v
 
-        self._curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-        self._curl.setopt(pycurl.USERPWD, '%s:%s' % (username, password))
+        return headers_dict
 
-    def _request(self, method='GET', data=None, headers={}, wanted_status=None):
-
+    def _request(self, method, data=None, headers={}, wanted_status=None):
         if 'User-Agent' not in headers.keys():
-            headers['User-Agent'] = 'BasicHttp Lib 0.21 - ' \
+            headers['User-Agent'] = 'BasicHttp Lib 0.3 - ' \
                 'http://github.com/nachopro/basic_http'
-
-        headers = ['%s: %s' % (k, v) for k, v in headers.iteritems()]
-        self._curl.setopt(pycurl.HTTPHEADER, headers)
 
         if isinstance(data, dict):
             data = urlencode(data)
 
-        if method == 'POST':
-            self._curl.setopt(pycurl.POST, 1)
-            self._curl.setopt(pycurl.POSTFIELDS, data)
-
-        elif method == 'PUT':
-            self._curl.setopt(pycurl.PUT, 1)
-            self._curl.setopt(pycurl.POSTFIELDS, data)
-
-        elif method == 'HEAD':
-            self._curl.setopt(pycurl.HEADER, 1)
-            self._curl.setopt(pycurl.NOBODY, 1)
-
-        self._curl.perform()
-        self._status = self._curl.getinfo(pycurl.HTTP_CODE)
+        self._conn = httplib.HTTPConnection(self._url.netloc)
+        self._conn.request(method, self._path(), data, headers)
+        self._res = self._conn.getresponse()
 
         if isinstance(wanted_status, list):
-            if self._status not in wanted_status:
-                raise InvalidResponse('Wanted Status: %d Response ' \
-                    'Status: %d' % (wanted_status, self._status))
+            if self._res.status not in wanted_status:
+                raise UnexpectedResponse('Wanted status: %d ' \
+                    'Responsed status: %d' % (wanted_status, self._res.status))
 
-        data = {
-            'status': self._status,
-            'headers': self._headers_to_dict(),
-            'body': self._body.getvalue()
+        self._status = self._res.status
+        self._header = self._headers_to_dict()
+        self._body = self._res.read()
+
+        return {
+            'satus': self._status,
+            'header': self._header,
+            'body': self._body
         }
-        return data
-
-    def _headers_to_dict(self):
-        headers = self._header.getvalue()
-        headers_dict = {}
-
-        for h in headers.split('\r\n'):
-            if h:
-                try:
-                    k, v = h.split(':')
-                except ValueError:
-                    k = h
-                    v = ''
-
-                headers_dict[k] = v.strip()
-
-        return headers_dict
 
     def GET(self, data=None, headers={}, wanted_status=None):
         return self._request('GET', data, headers, wanted_status)
@@ -131,5 +80,5 @@ class BasicHttp(object):
         return self._request('HEAD', data, headers, wanted_status)
 
     def PUT(self, data=None, headers={}, wanted_status=None):
-        return self._request('POST', data, headers, wanted_status)
+        return self._request('PUT', data, headers, wanted_status)
 
