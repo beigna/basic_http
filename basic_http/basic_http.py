@@ -2,6 +2,7 @@
 import httplib
 from urlparse import urlparse
 from urllib import urlencode
+from base64 import encodestring
 
 class BasicHttpError(Exception): pass
 class UnsupportedScheme(BasicHttpError): pass
@@ -15,6 +16,7 @@ class BasicHttp(object):
         '_body',
         '_conn',
         '_res',
+        '_auth',
     )
 
     def __init__(self, url, *args, **kwargs):
@@ -25,10 +27,12 @@ class BasicHttp(object):
         self._status = None
         self._header = None
         self._body = None
-
+        self._auth = None
 
     def authenticate(self, username, password):
-        pass
+        self._auth = 'Basic %s' % (
+            encodestring('%s:%s' % (username, password))[:-1]
+        )
 
     def _path(self):
         path = self._url.geturl()
@@ -47,6 +51,9 @@ class BasicHttp(object):
         if 'User-Agent' not in headers.keys():
             headers['User-Agent'] = 'BasicHttp Lib 0.3 - ' \
                 'http://github.com/nachopro/basic_http'
+
+        if self._auth:
+            headers['Authorization'] = self._auth
 
         if isinstance(data, dict):
             data = urlencode(data)
