@@ -49,7 +49,7 @@ class BasicHttp(object):
 
     def _request(self, method, data=None, headers={}, wanted_status=None):
         if 'User-Agent' not in headers.keys():
-            headers['User-Agent'] = 'BasicHttp Lib 0.3 - ' \
+            headers['User-Agent'] = 'BasicHttp Lib 0.31 - ' \
                 'http://github.com/nachopro/basic_http'
 
         if self._auth:
@@ -64,7 +64,7 @@ class BasicHttp(object):
 
         if isinstance(wanted_status, list):
             if self._res.status not in wanted_status:
-                raise UnexpectedResponse('Wanted status: %d ' \
+                raise UnexpectedResponse('Wanted status: %s ' \
                     'Responsed status: %d' % (wanted_status, self._res.status))
 
         self._status = self._res.status
