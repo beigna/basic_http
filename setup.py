@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='BasicHttp',
-    version='0.31',
+    version='0.32',
     description='A easy to use and clean HTTP client lib for Python',
     author='Ignacio Juan Martin Benedetti',
     author_email='tranceway@gmail.com',
