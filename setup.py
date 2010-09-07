@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(
-    name='BasicHttp Lib',
+    name='BasicHttp',
     version='0.31',
     description='A easy to use and clean HTTP client lib for Python',
     author='Ignacio Juan Martin Benedetti',
