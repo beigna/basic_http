@@ -51,5 +51,5 @@ Examples
 
     request = BasicHttp('http://www.example.com/')
     request.authenticate('user', 'pass')
-    response = request.PUT(data={'id': 5, 'name': example}, wanted_status=[201,202])
+    response = request.PUT(data={'id': 5, 'name': example}, wanted_status=[204,])
 
