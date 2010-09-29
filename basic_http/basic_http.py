@@ -11,6 +11,9 @@ class UnexpectedResponse(BasicHttpError): pass
 class BasicHttp(object):
     __slots__ = (
         '_url',
+        '_follow_redirect',
+        '_max_redirects',
+        '_followable_codes',
         '_status',
         '_header',
         '_body',
@@ -23,6 +26,10 @@ class BasicHttp(object):
         self._url = urlparse(url)
         if self._url.scheme != 'http':
             raise UnsupportedScheme('%s is not supported.' % (self._url.scheme))
+
+        self._follow_redirect = kwargs.get('follow_redirect', True)
+        self._max_redirects = kwargs.get('max_redirects', 5)
+        self._followable_codes = (301, 302, 303)
 
         self._status = None
         self._header = None
@@ -47,9 +54,26 @@ class BasicHttp(object):
 
         return headers_dict
 
+    def _process_response(self):
+        self._status = self._res.status
+        self._header = self._headers_to_dict()
+        self._body = self._res.read()
+
+    def _location_redirect(self, location):
+        location_url = urlparse(location)
+        if location_url.netloc == '':
+            final_url = '%s://%s%s' % (
+                self._url.scheme,
+                self._url.netloc,
+                location_url.geturl())
+
+            self._url = urlparse(final_url)
+
+        self._url = location_url
+
     def _request(self, method, data=None, headers={}, wanted_status=None):
         if 'User-Agent' not in headers.keys():
-            headers['User-Agent'] = 'BasicHttp Lib 0.32 - ' \
+            headers['User-Agent'] = 'BasicHttp Lib 0.4.1 - ' \
                 'http://github.com/nachopro/basic_http'
 
         if self._auth:
@@ -58,18 +82,30 @@ class BasicHttp(object):
         if isinstance(data, dict):
             data = urlencode(data)
 
-        self._conn = httplib.HTTPConnection(self._url.netloc)
-        self._conn.request(method, self._path(), data, headers)
-        self._res = self._conn.getresponse()
+        redirects_count = 0
+        while True:
+            self._conn = httplib.HTTPConnection(self._url.netloc)
+            self._conn.request(method, self._path(), data, headers)
+            self._res = self._conn.getresponse()
+
+            self._process_response()
+
+            if self._res.status in self._followable_codes and \
+            self._follow_redirect is True:
+                print 'redirect'
+                if redirects_count < self._max_redirects:
+                    redirects_count += 1
+                    print self._header['Location']
+                    self._location_redirect(self._header['Location'])
+                    continue
+
+            print 'fin'
+            break
 
         if isinstance(wanted_status, list):
             if self._res.status not in wanted_status:
                 raise UnexpectedResponse('Wanted status: %s ' \
                     'Responsed status: %d' % (wanted_status, self._res.status))
-
-        self._status = self._res.status
-        self._header = self._headers_to_dict()
-        self._body = self._res.read()
 
         return {
             'status': self._status,
