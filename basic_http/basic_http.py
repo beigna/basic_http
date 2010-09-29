@@ -92,14 +92,11 @@ class BasicHttp(object):
 
             if self._res.status in self._followable_codes and \
             self._follow_redirect is True:
-                print 'redirect'
                 if redirects_count < self._max_redirects:
                     redirects_count += 1
-                    print self._header['Location']
                     self._location_redirect(self._header['Location'])
                     continue
 
-            print 'fin'
             break
 
         if isinstance(wanted_status, list):
