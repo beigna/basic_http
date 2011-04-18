@@ -81,6 +81,7 @@ class BasicHttp(object):
 
         if isinstance(data, dict):
             data = urlencode(data)
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
         redirects_count = 0
         while True:
