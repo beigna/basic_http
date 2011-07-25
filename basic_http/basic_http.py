@@ -73,7 +73,7 @@ class BasicHttp(object):
 
     def _request(self, method, data=None, headers={}, wanted_status=None):
         if 'User-Agent' not in headers.keys():
-            headers['User-Agent'] = 'BasicHttp Lib 0.4.1 - ' \
+            headers['User-Agent'] = 'BasicHttp Lib 0.4.2 - ' \
                 'http://github.com/nachopro/basic_http'
 
         if self._auth:
