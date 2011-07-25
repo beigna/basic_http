@@ -81,7 +81,6 @@ class BasicHttp(object):
 
         if isinstance(data, dict):
             data = urlencode(data)
-            headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
         redirects_count = 0
         while True:
@@ -115,6 +114,7 @@ class BasicHttp(object):
         return self._request('GET', data, headers, wanted_status)
 
     def POST(self, data=None, headers={}, wanted_status=None):
+        headers['Content-Type'] = 'application/x-www-form-urlencoded'
         return self._request('POST', data, headers, wanted_status)
 
     def HEAD(self, data=None, headers={}, wanted_status=None):
