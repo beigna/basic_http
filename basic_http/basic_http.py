@@ -43,8 +43,8 @@ class BasicHttp(object):
 
     def _path(self):
         path = self._url.geturl()
-        path = path.replace(self._url.scheme, '')
-        path = path.replace(self._url.netloc, '')
+        path = path.replace(self._url.scheme, '', 1)
+        path = path.replace(self._url.netloc, '', 1)
         return path[3:]
 
     def _headers_to_dict(self):
