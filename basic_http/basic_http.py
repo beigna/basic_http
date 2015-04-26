@@ -68,6 +68,7 @@ class BasicHttp(object):
                 location_url.geturl())
 
             self._url = urlparse(final_url)
+            return
 
         self._url = location_url
 
